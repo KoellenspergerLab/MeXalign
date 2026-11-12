@@ -1,0 +1,370 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2870
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 # Coregistration Tool \'97 User Guide\
+\
+> **Who is this guide for?**  \
+> This guide is written for scientists (chemists, biologists, histologists) who want to\
+> align two microscopy images without writing code.  No programming knowledge is required\
+> to use the graphical interface.\
+\
+---\
+\
+## What does coregistration do?\
+\
+When you image the same tissue section with two different microscopes \'97 or when two\
+slides are cut from adjacent positions \'97 the resulting images will not line up\
+perfectly.  **Coregistration** is the process of mathematically warping one image\
+(the *moving* image) so that it matches the other (the *fixed* reference image).\
+\
+Think of it like pinning two transparent foils of the same tissue onto a light box\
+and sliding / stretching one foil until the cell outlines overlap as well as possible.\
+\
+The tool works on **segmentation masks** (black-and-white outlines of cells or tissue\
+regions), not on raw fluorescence images.  Once the masks are aligned, the same\
+transformation is automatically applied to all your channel images (e.g. DAPI, GFP,\
+Cy5 \'85) so that every channel ends up perfectly registered.\
+\
+---\
+\
+## Installation (one-time setup)\
+\
+> **Ask your IT support or a colleague** if you have never installed Python packages\
+> before.  Once installed, you only need to open the GUI in the future.\
+\
+```bash\
+# 1. Install dependencies\
+pip install pyside6 simpleitk scipy matplotlib numpy Pillow\
+\
+# 2. Open the graphical interface\
+python -m mexalign.gui_full\
+```\
+\
+---\
+\
+## Step-by-step guide (using the GUI)\
+\
+### Step 1 \'97 Prepare your files\
+\
+Place all files for one experiment in a **single folder**:\
+\
+| File | What it is | Typical name |\
+|---|---|---|\
+| Fixed mask | Cell outlines of the **reference** (will not move) | `ICP_mask.png` |\
+| Moving mask | Cell outlines of the image **to be aligned** | `F_mask.png` |\
+| Quality reference | A signal channel of the reference tissue | `ICP_DNA.tiff` |\
+| Channel images | Any additional images to be warped | `F_DAPI.tiff`, `F_GFP.tiff`, \'85 |\
+\
+> **What format are masks?**  \
+> Masks are greyscale or label images where background = 0 and each cell/region has\
+> a value > 0.  Both PNG and TIFF are supported.\
+\
+---\
+\
+### Step 2 \'97 Open the GUI\
+\
+```bash\
+python -m mexalign.gui_full\
+```\
+\
+The window is divided into two areas:\
+\
+- **Left panel** \'96 where you set your inputs and start the run  \
+- **Right panel** \'96 the live preview that shows how the alignment is progressing\
+\
+---\
+\
+### Step 3 \'97 Fill in the settings\
+\
+| Field | What to enter |\
+|---|---|\
+| **Data folder** | Click *Browse\'85* and navigate to your experiment folder |\
+| **Alignment method** | Leave as `mexalign` unless you specifically need rotation pre-search |\
+| **Fixed mask file** | Filename of your reference mask (e.g. `ICP_mask.png`) |\
+| **Moving mask file** | Filename of the mask to be aligned (e.g. `F_mask.png`) |\
+| **Parameter overrides** | Leave **blank** \'97 defaults work well for most experiments |\
+\
+---\
+\
+### Step 4 \'97 Run the alignment\
+\
+Click **\uc0\u9654  Run Alignment**.\
+\
+The right panel will show a live preview:\
+\
+- **Grey** = fixed (reference) mask\
+- **Coloured overlay** = moving mask, resampled into the reference space\
+\
+You will see the coloured mask gradually shift and deform until it matches the grey\
+reference.  The **pipeline log** on the left updates in real time.\
+\
+> \uc0\u9888 \u65039  **Do not close the window** while the alignment is running.\
+> Use the **\uc0\u9632  Stop** button if you need to interrupt it.\
+\
+---\
+\
+### Step 5 \'97 Check the results\
+\
+When finished, two quality scores appear at the top of the left panel.\
+\
+---\
+\
+#### What do Dice and IoU actually measure?\
+\
+Both scores compare two images pixel by pixel:\
+\
+- **A** = the fixed (reference) tissue segmentation mask (`ICP_mask.png`) \'97 the cell\
+  outlines of the tissue you are aligning *to*.\
+- **B** = the registered moving mask (`registered_mask.tif`) \'97 the cell outlines of\
+  the moving tissue *after* being warped into the reference space.\
+\
+For every pixel in the image, the tool asks: *is this pixel inside a cell in both A and B?*\
+\
+```\
+Overlapping pixels (A and B both foreground)\
+\uc0\u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \
+\
+  Fixed mask A:       \uc0\u9608 \u9608 \u9608 \u9608 \u9608 \u9608 \u9608 \u9608 \u9617 \u9617 \u9617 \u9617 \u9617 \u9617 \
+  Registered mask B:  \uc0\u9617 \u9617 \u9617 \u9617 \u9608 \u9608 \u9608 \u9608 \u9608 \u9608 \u9608 \u9608 \u9617 \u9617 \
+                           \uc0\u9608 \u9608 \u9608 \u9608          \u8592  these pixels count as intersection\
+```\
+\
+**Dice** (S\'f8rensen\'96Dice coefficient):\
+\
+```\
+        2 \'d7 (pixels in BOTH A and B)\
+Dice = \uc0\u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \
+        (pixels in A) + (pixels in B)\
+```\
+\
+**IoU** (Intersection over Union, also called Jaccard Index):\
+\
+```\
+       pixels in BOTH A and B\
+IoU = \uc0\u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \u9472 \
+       pixels in EITHER A or B\
+```\
+\
+Both give a number between 0 and 1.  IoU is always a little lower than Dice for the\
+same pair of masks \'97 they are equivalent measures, just scaled differently.\
+\
+> **Why not use the DNA/DAPI image as reference?**  \
+> A fluorescence signal image (e.g. `ICP_DNA.tiff`) binarised at >0 covers ~90 % of\
+> the image area because there is always some background fluorescence.  Any cell mask\
+> \'97 even a randomly placed one \'97 would score ~0.70 against such a reference.  \
+> Using the cell segmentation mask (`ICP_mask.png`) as reference gives a score that\
+> is genuinely sensitive to alignment quality.\
+\
+---\
+\
+#### Score interpretation\
+\
+| Dice | IoU | Alignment quality |\
+|---|---|---|\
+| > 0.90 | > 0.82 | Excellent |\
+| 0.80 \'96 0.90 | 0.67 \'96 0.82 | Good \'97 suitable for most analyses |\
+| 0.65 \'96 0.80 | 0.48 \'96 0.67 | Acceptable \'97 check the visual overlay |\
+| < 0.65 | < 0.48 | Poor \'97 review inputs and settings |\
+\
+*Example:* the Kidney dataset typically scores **Dice \uc0\u8776  0.79, IoU \u8776  0.66**\
+(mask-vs-mask), which is in the "Good" range.\
+\
+---\
+\
+All output files are written to a **`Coregistration/`** subfolder inside your data folder:\
+\
+| File | Description |\
+|---|---|\
+| `registered_mask.tif` | The moving mask after alignment |\
+| `mask_moving_*_coregistered_binarized.png` | Binary (black/white) version |\
+| `*_coregistered.tif / .png` | Each channel image after alignment |\
+| `Coregistration_composite.h5` | The mathematical transform (for reuse) |\
+| `Coregistration_displacement.mha` | Displacement field (for quality control) |\
+| `*_gradient.tif` | Gradient maps used internally by the algorithm |\
+\
+---\
+\
+## Alignment methods explained (plain language)\
+\
+The tool runs the alignment in three stages, each one more precise than the last.\
+\
+### Stage 1 \'97 FFT pre-alignment (coarse translation)\
+\
+Uses a mathematical trick (Fast Fourier Transform) to quickly find how much to\
+shift the moving image so that the overall shapes roughly overlap.  This is like\
+sliding one foil over the other to get the rough position right.\
+\
+### Stage 2 \'97 SDM registration (signed distance maps)\
+\
+Refines the position and orientation by comparing the *distance profiles* of cell\
+boundaries in both images.  This corrects small rotations and shears.\
+\
+### Stage 3 \'97 B-Spline registration (fine deformation)\
+\
+Applies a smooth, local warping to account for any remaining non-rigid differences\
+(e.g. tissue shrinkage, slight deformation during sectioning).  This is the most\
+computationally expensive step and takes the longest.\
+\
+---\
+\
+## Alignment method variants\
+\
+| Method | When to use it |\
+|---|---|\
+| `mexalign` | **Default** \'97 works for the vast majority of experiments |\
+| `rotation` | Use when one image is clearly rotated relative to the other (e.g. slide mounted upside down) |\
+| `gradient_turned` | Legacy method \'97 only use if `mexalign` consistently fails for your sample |\
+\
+---\
+\
+## Parameter reference (advanced users)\
+\
+Leave the *Parameter overrides* field blank unless you have a specific reason to\
+change a value.  The defaults are optimised for typical tissue-to-tissue registration.\
+\
+### Input / output\
+\
+| Parameter | Default | Plain-language meaning |\
+|---|---|---|\
+| `fixed_pixel_size` | `1.0` | Physical size of one pixel in the **reference** image, in micrometres |\
+| `moving_pixel_size` | `0.2738` | Physical size of one pixel in the **moving** image, in micrometres |\
+| `output_dtype` | `uint8` | Bit depth of output images (`uint8` = 8-bit, `uint16` = 16-bit) |\
+| `tiff_3d_mode` | `reject` | How to handle 3-D TIFF files.  `stack_as_channels` treats each Z-slice as a separate channel |\
+\
+### FFT pre-alignment\
+\
+| Parameter | Default | Plain-language meaning |\
+|---|---|---|\
+| `fft_spacing` | `1.0` | Grid spacing used during the coarse FFT search (\'b5m).  Larger = faster but less precise |\
+| `fft_erosion_enabled` | `false` | Shrink cell edges before FFT to reduce noise |\
+| `fft_erosion_radius` | `1` | How many pixels to shrink (only relevant when erosion is on) |\
+| `crop_padding_px` | `100` | Extra pixels added around the region of interest to avoid edge effects |\
+\
+### Coarse SDM stage\
+\
+| Parameter | Default | Plain-language meaning |\
+|---|---|---|\
+| `coarse_config.iters` | `100` | Maximum number of optimisation steps |\
+| `coarse_config.learning_rate` | `1.0` | How large each optimisation step is.  Reduce if the alignment overshoots |\
+| `coarse_config.sampling_percentage` | `1.0` | Fraction of pixels used per step (1.0 = all pixels) |\
+\
+### Fine SDM stage\
+\
+| Parameter | Default | Plain-language meaning |\
+|---|---|---|\
+| `sdm_config.iters` | `800` | Maximum number of fine optimisation steps |\
+| `sdm_config.learning_rate` | `0.5` | Step size for the fine stage |\
+| `sdm_erosion_enabled` | `false` | Shrink touching cells apart before SDM (useful for densely packed cells) |\
+| `sdm_erosion_radius` | `1` | How many pixels to shrink |\
+\
+### B-Spline fine deformation stage\
+\
+| Parameter | Default | Plain-language meaning |\
+|---|---|---|\
+| `bspline_config.iters` | `200` | Maximum optimisation steps for local warping |\
+| `bspline_config.learning_rate` | `0.5` | Step size (only relevant when `bspline_optimizer=regular_step_gd`) |\
+| `bspline_config.bspline_mesh` | `(4, 4)` | Number of control-point grid cells.  More cells = finer local deformation |\
+| `bspline_metric` | `mattes` | How similarity is measured: `mattes` (mutual information) or `msq` (mean squares) |\
+| `bspline_optimizer` | `lbfgs2` | Optimiser algorithm.  `lbfgs2` is usually faster; `regular_step_gd` is the classic option |\
+| `bspline_deterministic_sampling` | `true` | Use all pixels each step (recommended for reproducibility) |\
+| `bspline_mesh_scale_factors` | `[1, 2, 4]` | How the mesh is refined across pyramid levels |\
+\
+---\
+\
+## Frequently asked questions\
+\
+**Q: My Dice score is only 0.6 \'97 is that bad?**  \
+A: It depends on your tissue.  For densely packed cells that are very similar between\
+sections, a good score is > 0.85.  For sparse or variable tissue, 0.6\'960.75 may be\
+the best achievable.  Check the live preview visually \'97 sometimes the overlay looks\
+good even when the score is modest.\
+\
+**Q: The tool runs for a long time on the B-Spline step.**  \
+A: This is normal for large images.  The B-Spline step is the most thorough.  You can\
+speed it up by reducing `bspline_config.iters` (e.g. to `100`) at the cost of some precision.\
+\
+**Q: The overlay preview shows the masks are completely separate.**  \
+A: The FFT pre-alignment may have failed.  Try reducing `fft_spacing` (e.g. to `0.5`)\
+to make the initial search more precise.\
+\
+**Q: I get an error about "empty mask".**  \
+A: The tool could not find any foreground pixels in one of the mask files.  Check that:\
+- You entered the correct filename\
+- The mask file is not all-black\
+- For TIFF files: try setting `tiff_3d_mode=stack_as_channels` if your mask is a Z-stack\
+\
+**Q: My images are rotated relative to each other by more than ~10\'b0.**  \
+A: Switch the *Alignment method* to `rotation`.  This adds a rotational search before\
+the SDM/B-Spline stages.\
+\
+**Q: Can I re-apply the same transform to new channel images?**  \
+A: Not directly through the GUI yet.  The composite transform is saved as\
+`Coregistration_composite.h5` and can be loaded and applied programmatically\
+using SimpleITK.\
+\
+---\
+\
+## Output quality interpretation\
+\
+| Dice score | IoU equivalent | Interpretation |\
+|---|---|---|\
+| > 0.90 | > 0.82 | Excellent alignment |\
+| 0.80 \'96 0.90 | 0.67 \'96 0.82 | Good \'97 suitable for most downstream analyses |\
+| 0.65 \'96 0.80 | 0.48 \'96 0.67 | Acceptable \'97 check the visual overlay |\
+| < 0.65 | < 0.48 | Poor \'97 review input masks and try different settings |\
+\
+> **What is compared:** the fixed segmentation mask (`ICP_mask.png`) vs the registered\
+> moving mask (`registered_mask.tif`), both binarised (any cell label > 0 counts as\
+> foreground). See *Step 5* above for the full formula.\
+\
+---\
+\
+## Troubleshooting checklist\
+\
+- [ ] Are both mask files in the same folder you selected?\
+- [ ] Are the pixel sizes (`fixed_pixel_size`, `moving_pixel_size`) set correctly?\
+- [ ] Do the masks contain foreground pixels (are they not all black)?\
+- [ ] Is SciPy installed? (`pip install scipy`) \'97 required for FFT pre-alignment\
+- [ ] For TIFF masks: does the file open correctly in ImageJ/Fiji?\
+\
+---\
+\
+## Technical details (for developers)\
+\
+The pipeline lives in `mexalign/core/`.  \
+The entry points are:\
+\
+```bash\
+# Graphical interface\
+python -m mexalign.gui_full\
+\
+# Command-line (headless, for batch processing)\
+python -m mexalign.cli_full \\\
+  --directory /path/to/case \\\
+  --script-variant core \\\
+  --override fft_spacing=1.5 \\\
+  --override coarse_config.iters=150\
+```\
+\
+Module layout:\
+\
+| File | Responsibility |\
+|---|---|\
+| `core/config.py` | All algorithm parameters and their defaults |\
+| `core/image_io.py` | Reading and writing images (PNG, TIFF, multi-channel) |\
+| `core/features.py` | FFT-based translation estimation |\
+| `core/logic.py` | Core algorithms (SDM, gradients, erosion, registration runner) |\
+| `core/pipeline.py` | Orchestrates all stages; headless (no Qt dependency) |\
+| `core/signals.py` | Lightweight signal/slot system (mirrors Qt signals without the Qt dependency) |\
+| `gui_full.py` | PySide6 graphical interface |\
+| `compat_runner.py` | Connects GUI/CLI inputs to the pipeline; handles multiple variants |\
+| `contracts.py` | Data structures for inputs and results |\
+| `pipeline.py` | Dice/IoU evaluation |\
+| `metrics.py` | Dice and IoU calculation |\
+| `io_masks.py` | Binary mask loading for evaluation |\
+| `legacy/` | Rotation and gradient-turned variant scripts |\
+}
